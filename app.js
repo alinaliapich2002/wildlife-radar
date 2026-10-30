@@ -17,18 +17,21 @@ function issueCases(c) {
 function caseURL(c) {
   const u = new URL(location.href); u.hash = 'case-' + c.id; return u.href;
 }
+function caseSource(c) { return (c.sources||[]).map(s=>safeLink(s.url)).find(Boolean)||caseURL(c); }
+function escapeHTML(v) { return String(v||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
 function issueText(c) {
-  const parts = [c.title, c.period, c.summary];
-  if ((c.items || []).length) parts.push('Главное в подборке:\n' + c.items.map(t => '• ' + t).join('\n'));
-  issueCases(c).forEach((item, i) => {
-    parts.push((i + 1) + '. ' + item.title + '\n' + item.venue + ' · ' + item.country + ' · Публикация: ' + date(item.published) + (item.historical ? ' · Исторический пример' : '') + (item.event_date ? '\nСобытие: ' + item.event_date : ''));
-    parts.push(item.facts, 'Механика: ' + item.mechanics, 'Аудитория: ' + item.audience,
-      'Коммерческая задача: ' + item.goal, 'Идея для океанариума (гипотеза): ' + item.idea,
-      'Как проверить: ' + item.metrics, 'Кейс в радаре: ' + caseURL(item));
-    (item.sources || []).forEach(source => { const url = safeLink(source.url); if (url) parts.push('Источник: ' + url); });
-  });
-  if (issueCases(c).length) parts.push('Идеи применения и показатели теста — гипотезы. Описание механики само по себе не подтверждает её финансовую эффективность.');
+  const parts=[c.title,c.period];
+  issueCases(c).forEach((x,i)=>parts.push((i+1)+'. '+x.title+'\n'+x.venue+' · '+x.country+(x.historical?' · Исторический пример':'')+'\n'+caseSource(x),x.facts,'Механика: '+x.mechanics));
+  if(!issueCases(c).length) parts.push(c.summary);
   return parts.filter(Boolean).join('\n\n');
+}
+function issueHTML(c) {
+  let html='<p><b>'+escapeHTML(c.title)+'</b><br>'+escapeHTML(c.period)+'</p>';
+  issueCases(c).forEach((x,i)=>{
+    html+='<p><b><a href="'+escapeHTML(caseSource(x))+'">'+(i+1)+'. '+escapeHTML(x.title)+'</a></b><br>'+escapeHTML(x.venue+' · '+x.country+(x.historical?' · Исторический пример':''))+'</p><p>'+escapeHTML(x.facts)+'</p><p><b>Механика:</b> '+escapeHTML(x.mechanics)+'</p>';
+  });
+  if(!issueCases(c).length) html+='<p>'+escapeHTML(c.summary)+'</p>';
+  return html;
 }
 function openCase(id) {
   const item = data.cards.find(c => c.id === id); if (!item) return;
@@ -39,33 +42,27 @@ function openCase(id) {
 }
 function issue(c){
   const n=el('article',undefined,'issue');
-  n.append(el('span',c.period,'eyebrow'),el('h3',c.title),el('p',c.summary));
   const actions=el('div',undefined,'issue-actions');
-  const copy=el('button','Скопировать сводку для чата','copy-issue');
-  const status=el('span','','copy-status'); status.setAttribute('role','status');
-  const fallback=el('textarea',undefined,'copy-fallback'); fallback.readOnly=true; fallback.hidden=true;
-  fallback.setAttribute('aria-label','Полный текст сводки со ссылками');
+  const copy=el('button','Скопировать пост для Telegram','copy-issue');
+  const status=el('span','','copy-status');status.setAttribute('role','status');
+  const post=el('div',undefined,'telegram-post');
+  // Content is escaped and source links allow only HTTP(S).
+  post.innerHTML=issueHTML(c);
   copy.addEventListener('click',async()=>{
-    const text=issueText(c);
-    try { await navigator.clipboard.writeText(text); status.textContent='Скопировано — можно вставить в чат'; fallback.hidden=true; }
-    catch { fallback.value=text; fallback.hidden=false; fallback.focus(); fallback.select(); status.textContent='Нажмите Ctrl+C или скопируйте выделенный текст'; }
+    try{
+      if(!navigator.clipboard?.write||typeof ClipboardItem==='undefined')throw Error();
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':new Blob([issueHTML(c)],{type:'text/html'}),
+        'text/plain':new Blob([issueText(c)],{type:'text/plain'})
+      })]);
+      status.textContent='Скопировано с форматированием — вставьте в Telegram';
+    }catch{
+      const selection=window.getSelection(),range=document.createRange();
+      range.selectNodeContents(post);selection.removeAllRanges();selection.addRange(range);
+      status.textContent='Текст выделен. Нажмите Ctrl+C и вставьте в Telegram';
+    }
   });
-  actions.append(copy,status); n.append(actions,fallback);
-  if ((c.items||[]).length) { const box=el('div',undefined,'issue-takeaways'); box.append(el('h4','Главное в подборке')); const ul=el('ul'); c.items.forEach(text=>ul.append(el('li',text))); box.append(ul); n.append(box); }
-  issueCases(c).forEach((item,i)=>{
-    const box=el('section',undefined,'issue-case');
-    box.append(el('h4',(i+1)+'. '+item.title),el('p',item.venue+' · '+item.country+' · Публикация: '+date(item.published)+(item.historical?' · Исторический пример':''),'venue'));
-    if(item.event_date) box.append(el('p','Событие: '+item.event_date,'date-note'));
-    box.append(el('p',item.facts));
-    field(box,'Как устроена механика',item.mechanics,'mechanics');
-    field(box,'Для кого',item.audience); field(box,'Коммерческая задача',item.goal);
-    field(box,'Идея для океанариума · гипотеза',item.idea,'idea'); field(box,'Как проверить',item.metrics);
-    const links=el('div',undefined,'sources'); const internal=el('a','Кейс в радаре ↗'); internal.href=caseURL(item);
-    internal.addEventListener('click',e=>{e.preventDefault();location.hash='case-'+item.id;openCase(item.id);}); links.append(internal);
-    (item.sources||[]).forEach(source=>{const href=safeLink(source.url);if(!href)return;const a=el('a',source.label||'Оригинал ↗');a.href=href;a.target='_blank';a.rel='noopener noreferrer';links.append(a);});
-    box.append(links); n.append(box);
-  });
-  return n;
+  actions.append(copy,status);n.append(actions,post);return n;
 }
 window.addEventListener('hashchange',()=>{if(data&&location.hash.startsWith('#case-'))openCase(location.hash.slice(6));});
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{data=d;$('#updated').textContent='Проверено: '+date(d.checked_at);const stale=d.last_successful_scan&&Date.now()-new Date(d.last_successful_scan)>9*86400000;$('#notice').textContent=d.pilot?'Пилотная подборка. Автоматический сбор ещё не включён. Исторические кейсы отмечены отдельно.':stale?'Обновление задерживается. Ниже — последняя успешно опубликованная подборка.':'Последний успешный сбор: '+date((d.last_successful_scan||'').slice(0,10))+'. Новые кейсы и ранее найденные практики доступны в архиве.';render();if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));$('#issues').replaceChildren(...(d.issues||[]).map(issue));$('#directions').replaceChildren(...(d.directions||[]).map(issue));if(!d.directions?.length)$('#directions').append(el('p','Пока недостаточно независимых внедрений с подтверждённой историей. Направления появятся по мере накопления базы.','empty'));$('#source-list').replaceChildren(...d.sources.map(s=>{const a=el('a',s.name+' ↗');a.href=safeLink(s.url)||'#';a.target='_blank';a.rel='noopener noreferrer';return a;}));}).catch(()=>{$('#notice').textContent='Не удалось загрузить подборку. Обновите страницу позднее.';$('#updated').textContent='Данные временно недоступны';});
