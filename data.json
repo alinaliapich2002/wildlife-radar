@@ -26,7 +26,14 @@
       ],
       "digest_priority": 10,
       "digest_title": "The Igloo: взрослый lounge за доплату",
-      "digest_text": "За $23 сверх билета Wild Lights гости 21+ получают доступ в отдельный lounge с закусками и двумя напитками. По пятницам и субботам — живая музыка; вместимость ограничена."
+      "digest_text": "За $23 сверх билета Wild Lights гости 21+ получают доступ в отдельный lounge с закусками и двумя напитками. По пятницам и субботам — живая музыка; вместимость ограничена.",
+      "image": {
+        "url": "assets/cases/20567931c3e947cdfe4b.webp",
+        "credit": "detroitzoo.org",
+        "source_url": "https://detroitzoo.org/events/wild-lights",
+        "original_url": "https://detroitzoo.org/wp-content/uploads/2025/10/wlHero-1200x627.png",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "d1258ab58c0d968e4353",
@@ -284,7 +291,14 @@
       ],
       "digest_priority": 1,
       "digest_title": "НДС для дельфинариев: законопроект",
-      "digest_text": "Предложено освобождение от НДС с 2027 года; источник сообщает о проекте, а не принятой льготе."
+      "digest_text": "Предложено освобождение от НДС с 2027 года; источник сообщает о проекте, а не принятой льготе.",
+      "image": {
+        "url": "assets/cases/606f1643250c67ed7084.jpg",
+        "credit": "crimea.ria.ru",
+        "source_url": "https://crimea.ria.ru/20261030/po-initsiative-kryma-delfinarii-osvobodyat-ot-uplaty-nds-s-2027-goda--1160578794.html",
+        "original_url": "https://cdnn1.crimea.imgria.ru/images/sharing/article/rus/1160578794.jpg?11186061811793337963=",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "8cad99cb8aaba17a00aa",
@@ -334,7 +348,14 @@
       ],
       "digest_priority": 6,
       "digest_title": "Ocean in Motion: дети двигаются как животные",
-      "digest_text": "Анонсирована выставка для детей 2–6 лет: движение, вода, тактильные игры и цифровые пингвины."
+      "digest_text": "Анонсирована выставка для детей 2–6 лет: движение, вода, тактильные игры и цифровые пингвины.",
+      "image": {
+        "url": "assets/cases/9bce84151e736421a89f.jpg",
+        "credit": "kqed.org",
+        "source_url": "https://kqed.org/science/2002455/at-monterey-bay-aquarium-kids-can-hop-like-fish-and-waddle-like-penguins",
+        "original_url": "https://cdn.kqed.org/wp-content/uploads/sites/35/2026/10/261026-OCEANMOTION-NG-42-KQED-0fd10596.jpg",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "d4f82964e398774a9412",
@@ -359,7 +380,14 @@
       ],
       "digest_priority": 0,
       "digest_title": "Оленевка: содержание на пожертвования",
-      "digest_text": "При низких продажах билетов дельфинарий привлекает переводы на корм и работу фильтров."
+      "digest_text": "При низких продажах билетов дельфинарий привлекает переводы на корм и работу фильтров.",
+      "image": {
+        "url": "assets/cases/d4f82964e398774a9412.jpg",
+        "credit": "crimea.kp.ru",
+        "source_url": "https://crimea.kp.ru/daily/277828/5321810",
+        "original_url": "https://s09.stc.yc.kpcdn.net/share/i/12/15566655/cr-1200-630.wm-asnpmfru-100-tr-0-0.t-13-5321810-ttps-47-12-0083CD-1010-l-85-b-42.t-13-5321810-ttps-47-12-FFF-1010-l-85-b-42.t-207-5-asb-37-10-FFF-788-l-370-t-68.m2026-10-29T19-34-54.jpg",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "9d739e462f69d7289464",
@@ -406,7 +434,14 @@
           "label": "Оригинальный источник ↗",
           "url": "https://crimea-news.com/society/2026/10/29/2107923.html"
         }
-      ]
+      ],
+      "image": {
+        "url": "assets/cases/7df8cfe688c41b1456f0.jpg",
+        "credit": "crimea-news.com",
+        "source_url": "https://crimea-news.com/society/2026/10/29/2107923.html",
+        "original_url": "https://crimea-news.com/img/20261029/4b6e0c6ada6ef1bdaffccd6d4be76e6b_o.jpg",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "dbc1c0c79ddf8276d855",
@@ -504,7 +539,14 @@
       ],
       "digest_priority": 4,
       "digest_title": "Каникулы в Ленинградском зоопарке",
-      "digest_text": "Семьи проходят квест о Берингии с заданиями, мастер-классами и призами."
+      "digest_text": "Семьи проходят квест о Берингии с заданиями, мастер-классами и призами.",
+      "image": {
+        "url": "assets/cases/9eb5d84ca588487ec261.jpg",
+        "credit": "piter-news.net",
+        "source_url": "https://piter-news.net/other/2026/10/28/959427.html",
+        "original_url": "https://piter-news.net/img/20261028/df14eb2fadf6f9f22e213c85bfc2fd48_o.jpg",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "c5d88d8627ed3f2a09bb",
@@ -556,7 +598,14 @@
       ],
       "digest_priority": 6,
       "digest_title": "Крокус: бесплатный день для олимпиадников",
-      "digest_text": "Каждый третий четверг — вход по заявке для участников олимпиады; сопровождающим нужен отдельный билет."
+      "digest_text": "Каждый третий четверг — вход по заявке для участников олимпиады; сопровождающим нужен отдельный билет.",
+      "image": {
+        "url": "assets/cases/ac0ecc4b5fe4034c4fe1.webp",
+        "credit": "museum.cpm.moscow",
+        "source_url": "https://museum.cpm.moscow/museums/620",
+        "original_url": "https://museum.cpm.moscow/files/thumb/images/osob.png.illus-500.1756671906.webp",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "ea9b8cc66f01c8e52073",
@@ -581,7 +630,14 @@
       ],
       "digest_priority": 8,
       "digest_title": "LumiNature: световой маршрут и билет с дегустациями",
-      "digest_text": "Ночная выставка продаёт отдельный Cocktail Walk для гостей 21+: шесть дегустаций и доступ к световому маршруту. Еда, парковка и колесо обозрения оплачиваются дополнительно."
+      "digest_text": "Ночная выставка продаёт отдельный Cocktail Walk для гостей 21+: шесть дегустаций и доступ к световому маршруту. Еда, парковка и колесо обозрения оплачиваются дополнительно.",
+      "image": {
+        "url": "assets/cases/ea9b8cc66f01c8e52073.jpg",
+        "credit": "visitphilly.com",
+        "source_url": "https://visitphilly.com/things-to-do/events/luminature-philadelphia-zoo",
+        "original_url": "https://visitphilly.com/wp-content/uploads/2025/11/Luminature-couple-photo-by-DKnoll-for-vp-2200x1237px.jpg",
+        "kind": "source-publication"
+      }
     },
     {
       "id": "cc69b13b833b4c15cb7d",
