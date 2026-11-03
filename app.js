@@ -28,10 +28,10 @@ function digestPlan(c) {
   cards.filter(x=>!main.includes(x)).forEach(x=>{if(!groups.has(x.category))groups.set(x.category,[]);groups.get(x.category).push(x);});
   return {main,groups};
 }
-function digestCopy(x,short=false) {
-  const text=x.digest_text||x.mechanics||x.facts||'';
-  if(short) {const first=text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim()||text;return first.length<=180?first:first.slice(0,177).replace(/\s+\S*$/,'')+'…';}
-  return text.length<=340?text:text.slice(0,337).replace(/\s+\S*$/,'')+'…';
+function digestCopy(x) {
+  const text=(x.digest_text||x.mechanics||x.facts||'').trim();
+  const segmenter=new Intl.Segmenter('ru',{granularity:'sentence'});
+  return [...segmenter.segment(text)][0]?.segment.trim()||'';
 }
 function digestSections(c) {
   // Trend observations retain all operators, including Moskvarium.
@@ -144,11 +144,9 @@ async function visualCanvas(issue,page,index,total){
     const rowHeight=Math.floor(1010/page.entries.length);
     for(let i=0;i<page.entries.length;i++){
       const x=page.entries[i],y=215+i*rowHeight;
-      await drawCasePhoto(ctx,x,54,y,260,Math.min(185,rowHeight-65));
-      paintText(ctx,x.image?.credit||'Фото недоступно',54,y+Math.min(185,rowHeight-65)+26,265,'17px system-ui',22,1,'#637976');
-      let ty=paintText(ctx,x.digest_title||x.title,346,y+28,680,'bold 32px system-ui',39,2);
-      ty=paintText(ctx,x.venue,346,ty+4,680,'22px system-ui',28,1,'#146956');
-      paintText(ctx,digestCopy(x,true),346,ty+12,680,'26px system-ui',35,Math.max(2,Math.floor((rowHeight-(ty-y)-30)/35)));
+      let ty=paintText(ctx,x.digest_title||x.title,54,y+32,972,'bold 36px system-ui',44,2);
+      ty=paintText(ctx,x.venue,54,ty+8,972,'24px system-ui',31,1,'#146956');
+      paintText(ctx,digestCopy(x),54,ty+18,972,'30px system-ui',40,Math.max(1,Math.floor((rowHeight-(ty-y)-40)/40)));
       ctx.strokeStyle='#dce3da';ctx.beginPath();ctx.moveTo(54,y+rowHeight-18);ctx.lineTo(1026,y+rowHeight-18);ctx.stroke();
     }
   }
@@ -159,7 +157,7 @@ async function visualCanvas(issue,page,index,total){
 }
 function visualGallery(issue){
   const box=el('section',undefined,'visual-gallery'),head=el('div',undefined,'issue-actions');
-  const button=el('button','Показать карточки с фото','copy-issue'),message=el('span','','copy-status');
+  const button=el('button','Показать карточки сводки','copy-issue'),message=el('span','','copy-status');
   message.setAttribute('role','status');const grid=el('div',undefined,'visual-grid');head.append(button,message);box.append(head,grid);
   button.addEventListener('click',async()=>{
     button.disabled=true;message.textContent='Готовим изображения…';
