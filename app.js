@@ -20,7 +20,7 @@ function caseURL(c) {
 function caseSource(c) { return (c.sources||[]).map(s=>safeLink(s.url)).find(Boolean)||caseURL(c); }
 function escapeHTML(v) { return String(v||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
 function digestPlan(c) {
-  const cards=issueCases(c).filter(x=>!x.exclude_from_digest&&!/москвариум/i.test(x.venue));
+  const cards=issueCases(c).filter(x=>!x.exclude_from_digest&&!/москвариум/i.test(x.venue)&&x.digest_scope!=='adjacent');
   const priority=x=>x.digest_priority??({'Маркетинг':6,'Дополнительные услуги':5,'Опыт посещения':3}[x.category]||1);
   cards.sort((a,b)=>priority(b)-priority(a)||a.id.localeCompare(b.id));
   const main=cards.filter(x=>priority(x)>=5).slice(0,3);
@@ -85,8 +85,95 @@ function issue(c){
       status.textContent='Текст выделен. Нажмите Ctrl+C и вставьте в Telegram';
     }
   });
-  actions.append(copy,status);n.append(actions,post);return n;
+  actions.append(copy,status);n.append(actions,visualGallery(c),post);return n;
 }
 window.addEventListener('hashchange',()=>{if(data&&location.hash.startsWith('#case-'))openCase(location.hash.slice(6));});
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{data=d;$('#updated').textContent='Проверено: '+date(d.checked_at);const stale=d.last_successful_scan&&Date.now()-new Date(d.last_successful_scan)>9*86400000;$('#notice').textContent=d.pilot?'Пилотная подборка. Автоматический сбор ещё не включён. Исторические кейсы отмечены отдельно.':stale?'Обновление задерживается. Ниже — последняя успешно опубликованная подборка.':'Последний успешный сбор: '+date((d.last_successful_scan||'').slice(0,10))+'. Новые кейсы и ранее найденные практики доступны в архиве.';render();if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));$('#issues').replaceChildren(...(d.issues||[]).map(issue));$('#directions').replaceChildren(...(d.directions||[]).map(issue));if(!d.directions?.length)$('#directions').append(el('p','Пока недостаточно независимых внедрений с подтверждённой историей. Направления появятся по мере накопления базы.','empty'));$('#source-list').replaceChildren(...d.sources.map(s=>{const a=el('a',s.name+' ↗');a.href=safeLink(s.url)||'#';a.target='_blank';a.rel='noopener noreferrer';return a;}));}).catch(()=>{$('#notice').textContent='Не удалось загрузить подборку. Обновите страницу позднее.';$('#updated').textContent='Данные временно недоступны';});
 
+
+function visualPages(issue) {
+  const plan=digestPlan(issue), pages=plan.main.map(x=>({title:'Главное · механика',entries:[x],short:false}));
+  const rest=[...plan.groups.values()].flat();
+  const size=Math.max(3,Math.ceil(rest.length/Math.max(1,7-pages.length)));
+  for(let i=0;i<rest.length;i+=size){
+    const entries=rest.slice(i,i+size),categories=[...new Set(entries.map(x=>x.category))];
+    pages.push({title:categories.length===1?categories[0]:'Коротко · другие кейсы',entries,short:true});
+  }
+  return pages;
+}
+function paintText(ctx,text,x,y,width,font,lineHeight,maxLines,color='#123e40'){
+  ctx.font=font;ctx.fillStyle=color;
+  const words=String(text||'').split(/\s+/),lines=[];let line='';
+  for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>width&&line){lines.push(line);line=word;}else line=next;}
+  if(line)lines.push(line);
+  const visible=lines.slice(0,maxLines);
+  if(lines.length>maxLines){let last=visible.at(-1);while(ctx.measureText(last+'…').width>width)last=last.slice(0,-1);visible[visible.length-1]=last+'…';}
+  visible.forEach((s,i)=>ctx.fillText(s,x,y+i*lineHeight));
+  return y+visible.length*lineHeight;
+}
+async function drawCasePhoto(ctx,item,x,y,w,h){
+  ctx.fillStyle='#dce8dd';ctx.fillRect(x,y,w,h);
+  const image=item.image;
+  if(image?.url){
+    try{
+      const u=new URL(image.url,location.href);
+      if(u.origin!==location.origin)throw Error('Only prepared local photos');
+      const pic=new Image();pic.src=u.href;await pic.decode();
+      const scale=Math.max(w/pic.width,h/pic.height),sw=w/scale,sh=h/scale;
+      ctx.drawImage(pic,(pic.width-sw)/2,(pic.height-sh)/2,sw,sh,x,y,w,h);
+      return true;
+    }catch{}
+  }
+  paintText(ctx,'Фото не получено',x+25,y+h/2,w-50,'26px system-ui',32,2,'#637976');
+  return false;
+}
+async function visualCanvas(issue,page,index,total){
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
+  const ctx=canvas.getContext('2d');ctx.fillStyle='#f7f8f3';ctx.fillRect(0,0,1080,1350);
+  ctx.fillStyle='#123e40';ctx.fillRect(0,0,1080,130);
+  paintText(ctx,'ЖИВОЙ РАДАР',54,57,720,'bold 30px system-ui',36,1,'#d8eea0');
+  paintText(ctx,issue.period,54,98,900,'24px system-ui',30,1,'#ffffff');
+  paintText(ctx,page.title.toUpperCase(),54,174,960,'bold 24px system-ui',30,1);
+  if(!page.short){
+    const x=page.entries[0];await drawCasePhoto(ctx,x,54,205,972,435);
+    paintText(ctx,x.image?'Фото публикации · '+x.image.credit:'Изображение недоступно · ссылка в тексте сводки',54,668,960,'20px system-ui',26,1,'#637976');
+    let y=paintText(ctx,x.digest_title||x.title,54,735,960,'bold 51px system-ui',60,3);
+    y=paintText(ctx,x.venue,54,y+15,960,'26px system-ui',33,2,'#146956');
+    paintText(ctx,digestCopy(x),54,y+28,960,'32px system-ui',44,Math.max(1,Math.floor((1220-y-28)/44)));
+  }else{
+    const rowHeight=Math.floor(1010/page.entries.length);
+    for(let i=0;i<page.entries.length;i++){
+      const x=page.entries[i],y=215+i*rowHeight;
+      await drawCasePhoto(ctx,x,54,y,260,Math.min(185,rowHeight-65));
+      paintText(ctx,x.image?.credit||'Фото недоступно',54,y+Math.min(185,rowHeight-65)+26,265,'17px system-ui',22,1,'#637976');
+      let ty=paintText(ctx,x.digest_title||x.title,346,y+28,680,'bold 32px system-ui',39,2);
+      ty=paintText(ctx,x.venue,346,ty+4,680,'22px system-ui',28,1,'#146956');
+      paintText(ctx,digestCopy(x,true),346,ty+12,680,'26px system-ui',35,Math.max(2,Math.floor((rowHeight-(ty-y)-30)/35)));
+      ctx.strokeStyle='#dce3da';ctx.beginPath();ctx.moveTo(54,y+rowHeight-18);ctx.lineTo(1026,y+rowHeight-18);ctx.stroke();
+    }
+  }
+  ctx.fillStyle='#123e40';ctx.fillRect(0,1260,1080,90);
+  paintText(ctx,'Источники и ссылки — в тексте сводки',54,1314,870,'23px system-ui',30,1,'#ffffff');
+  paintText(ctx,(index+1)+' / '+total,940,1314,100,'23px system-ui',30,1,'#d8eea0');
+  return canvas;
+}
+function visualGallery(issue){
+  const box=el('section',undefined,'visual-gallery'),head=el('div',undefined,'issue-actions');
+  const button=el('button','Показать карточки с фото','copy-issue'),message=el('span','','copy-status');
+  message.setAttribute('role','status');const grid=el('div',undefined,'visual-grid');head.append(button,message);box.append(head,grid);
+  button.addEventListener('click',async()=>{
+    button.disabled=true;message.textContent='Готовим изображения…';
+    try{
+      const pages=visualPages(issue);
+      for(let i=0;i<pages.length;i++){
+        const item=el('div',undefined,'visual-page'),canvas=await visualCanvas(issue,pages[i],i,pages.length);
+        canvas.setAttribute('role','img');canvas.setAttribute('aria-label',pages[i].entries.map(x=>x.digest_title||x.title).join('; '));
+        const save=el('button','Скачать карточку '+(i+1)+' · PNG','copy-issue');
+        save.addEventListener('click',()=>canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download=issue.id+'-'+(i+1)+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png'));
+        item.append(canvas,save);grid.append(item);
+      }
+      message.textContent=pages.length+' карточек · 1080 × 1350 · ссылки — в тексте поста';button.hidden=true;
+    }catch{message.textContent='Не удалось подготовить карточки. Попробуйте ещё раз.';button.disabled=false;}
+  });
+  return box;
+}
