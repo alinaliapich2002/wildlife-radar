@@ -19,22 +19,45 @@ function caseURL(c) {
 }
 function caseSource(c) { return (c.sources||[]).map(s=>safeLink(s.url)).find(Boolean)||caseURL(c); }
 function escapeHTML(v) { return String(v||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function digestPlan(c) {
+  const cards=issueCases(c).filter(x=>!x.exclude_from_digest&&!/москвариум/i.test(x.venue));
+  const priority=x=>x.digest_priority??({'Маркетинг':6,'Дополнительные услуги':5,'Опыт посещения':3}[x.category]||1);
+  cards.sort((a,b)=>priority(b)-priority(a)||a.id.localeCompare(b.id));
+  const main=cards.filter(x=>priority(x)>=5).slice(0,3);
+  const groups=new Map();
+  cards.filter(x=>!main.includes(x)).forEach(x=>{if(!groups.has(x.category))groups.set(x.category,[]);groups.get(x.category).push(x);});
+  return {main,groups};
+}
+function digestCopy(x,short=false) {
+  const text=x.digest_text||x.mechanics||x.facts||'';
+  if(short) {const first=text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim()||text;return first.length<=180?first:first.slice(0,177).replace(/\s+\S*$/,'')+'…';}
+  return text.length<=340?text:text.slice(0,337).replace(/\s+\S*$/,'')+'…';
+}
+function digestSections(c) {
+  // Trend observations retain all operators, including Moskvarium.
+  if((data.directions||[]).some(x=>x.id===c.id))return [{title:c.summary,entries:issueCases(c),short:true}];
+  const p=digestPlan(c),sections=[];
+  if(p.main.length)sections.push({title:'Главное · механики',entries:p.main,short:false});
+  p.groups.forEach((entries,title)=>sections.push({title,entries,short:true}));
+  return sections;
+}
 function issueText(c) {
   const parts=[c.title,c.period];
-  issueCases(c).forEach((x,i)=>parts.push((i+1)+'. '+x.title+'\n'+x.venue+' · '+x.country+(x.historical?' · Исторический пример':'')+'\n'+caseSource(x),x.facts,'Механика: '+x.mechanics));
-  if(!issueCases(c).length) parts.push(c.summary);
-  return parts.filter(Boolean).join('\n\n');
+  digestSections(c).forEach(s=>{parts.push(s.title);s.entries.forEach(x=>parts.push((x.digest_title||x.title)+' · '+x.venue+'\n'+digestCopy(x,s.short)+'\n'+caseSource(x)));});
+  if(!digestSections(c).length)parts.push('Новых внешних кейсов для сводки нет.');
+  return parts.join('\n\n');
 }
 function issueHTML(c) {
   let html='<p><b>'+escapeHTML(c.title)+'</b><br>'+escapeHTML(c.period)+'</p>';
-  issueCases(c).forEach((x,i)=>{
-    html+='<p><b><a href="'+escapeHTML(caseSource(x))+'">'+(i+1)+'. '+escapeHTML(x.title)+'</a></b><br>'+escapeHTML(x.venue+' · '+x.country+(x.historical?' · Исторический пример':''))+'</p><p>'+escapeHTML(x.facts)+'</p><p><b>Механика:</b> '+escapeHTML(x.mechanics)+'</p>';
+  digestSections(c).forEach(s=>{
+    html+='<p><b>'+escapeHTML(s.title)+'</b></p>';
+    s.entries.forEach(x=>{html+='<p><b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.digest_title||x.title)+'</a></b> · '+escapeHTML(x.venue)+(s.short?' — ':'<br>')+escapeHTML(digestCopy(x,s.short))+'</p>';});
   });
-  if(!issueCases(c).length) html+='<p>'+escapeHTML(c.summary)+'</p>';
+  if(!digestSections(c).length)html+='<p>Новых внешних кейсов для сводки нет.</p>';
   return html;
 }
 function openCase(id) {
-  const item = data.cards.find(c => c.id === id); if (!item) return;
+  const item = data.cards.find(c => c.id === id || (c.merged_ids||[]).includes(id)); if (!item) return; id=item.id;
   ['search','category','region','period'].forEach(key => $('#'+key).value = '');
   render(); tab('feed');
   const target = document.getElementById('case-' + id);
