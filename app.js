@@ -66,7 +66,7 @@ function openCase(id) {
 function issue(c){
   const n=el('article',undefined,'issue');
   const actions=el('div',undefined,'issue-actions');
-  const copy=el('button','Скопировать пост для Telegram','copy-issue');
+  const copy=el('button','Скопировать полную сводку','copy-issue');
   const status=el('span','','copy-status');status.setAttribute('role','status');
   const post=el('div',undefined,'telegram-post');
   // Content is escaped and source links allow only HTTP(S).
@@ -85,7 +85,10 @@ function issue(c){
       status.textContent='Текст выделен. Нажмите Ctrl+C и вставьте в Telegram';
     }
   });
-  actions.append(copy,status);n.append(actions,visualGallery(c),post);return n;
+  actions.append(copy,status);
+  if(!(data.directions||[]).some(x=>x.id===c.id))n.append(captionBlock(c));
+  n.append(visualGallery(c));
+  const full=el('details'),heading=el('summary','Полная текстовая сводка со всеми кейсами');full.append(heading,actions,post);n.append(full);return n;
 }
 window.addEventListener('hashchange',()=>{if(data&&location.hash.startsWith('#case-'))openCase(location.hash.slice(6));});
 fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(d=>{data=d;$('#updated').textContent='Проверено: '+date(d.checked_at);const stale=d.last_successful_scan&&Date.now()-new Date(d.last_successful_scan)>9*86400000;$('#notice').textContent=d.pilot?'Пилотная подборка. Автоматический сбор ещё не включён. Исторические кейсы отмечены отдельно.':stale?'Обновление задерживается. Ниже — последняя успешно опубликованная подборка.':'Последний успешный сбор: '+date((d.last_successful_scan||'').slice(0,10))+'. Новые кейсы и ранее найденные практики доступны в архиве.';render();if(location.hash.startsWith('#case-'))openCase(location.hash.slice(6));$('#issues').replaceChildren(...(d.issues||[]).map(issue));$('#directions').replaceChildren(...(d.directions||[]).map(issue));if(!d.directions?.length)$('#directions').append(el('p','Пока недостаточно независимых внедрений с подтверждённой историей. Направления появятся по мере накопления базы.','empty'));$('#source-list').replaceChildren(...d.sources.map(s=>{const a=el('a',s.name+' ↗');a.href=safeLink(s.url)||'#';a.target='_blank';a.rel='noopener noreferrer';return a;}));}).catch(()=>{$('#notice').textContent='Не удалось загрузить подборку. Обновите страницу позднее.';$('#updated').textContent='Данные временно недоступны';});
@@ -174,4 +177,50 @@ function visualGallery(issue){
     }catch{message.textContent='Не удалось подготовить карточки. Попробуйте ещё раз.';button.disabled=false;}
   });
   return box;
+}
+
+function captionParts(c) {
+  const matches=c.period.match(/\d{4}-\d{2}-\d{2}/g);
+  let period=c.period;
+  if(matches?.length===2) {
+    const format=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'});
+    period=format.format(new Date(matches[0]+'T12:00:00Z'))+' — '+format.format(new Date(matches[1]+'T12:00:00Z'));
+  }
+  return {title:'Живой радар · '+period,main:digestPlan(c).main};
+}
+function captionHTML(c) {
+  const p=captionParts(c),home=new URL(location.href);home.hash='';
+  return '<p><b>'+escapeHTML(p.title)+'</b></p>'+
+    '<p>В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.</p>'+
+    (p.main.length?'<p>'+ (p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:')+'</p>':'')+
+    p.main.map(x=>'<p>• <b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.venue+' — '+(x.digest_title||x.title))+'</a></b>: '+escapeHTML(digestCopy(x))+'</p>').join('')+
+    '<p>Остальные кейсы — коротко в карточках. <a href="'+escapeHTML(home.href)+'">Все описания и источники — в радаре</a>.</p>'+
+    '<p><i>В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.</i></p>';
+}
+function captionText(c) {
+  const p=captionParts(c),home=new URL(location.href);home.hash='';
+  return [p.title,'В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.',
+    p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:',
+    ...p.main.map(x=>'• '+x.venue+' — '+(x.digest_title||x.title)+': '+digestCopy(x)+'\n'+caseSource(x)),
+    'Остальные кейсы — коротко в карточках. Все описания и источники — в радаре: '+home.href,
+    'В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.'].join('\n\n');
+}
+function captionBlock(c) {
+  const box=el('section',undefined,'caption-block'),heading=el('h3','Подпись к карточкам · Telegram');
+  const post=el('div',undefined,'telegram-post');post.innerHTML=captionHTML(c);
+  const actions=el('div',undefined,'issue-actions'),copy=el('button','Скопировать подпись к карточкам','copy-issue'),status=el('span','','copy-status');
+  status.setAttribute('role','status');
+  copy.addEventListener('click',async()=>{
+    try{
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':new Blob([captionHTML(c)],{type:'text/html'}),
+        'text/plain':new Blob([captionText(c)],{type:'text/plain'})
+      })]);status.textContent='Подпись скопирована — вставьте в Telegram';
+    }catch{
+      const selection=window.getSelection(),range=document.createRange();
+      range.selectNodeContents(post);selection.removeAllRanges();selection.addRange(range);
+      status.textContent='Подпись выделена. Нажмите Ctrl+C и вставьте в Telegram';
+    }
+  });
+  actions.append(copy,status);box.append(heading,post,actions);return box;
 }
