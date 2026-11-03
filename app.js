@@ -8,7 +8,7 @@ function tab(id){document.querySelectorAll('.panel').forEach(n=>n.hidden=n.id!==
 document.querySelectorAll('[data-tab]').forEach(n=>n.addEventListener('click',()=>tab(n.dataset.tab)));
 $('#method-link').addEventListener('click',e=>{e.preventDefault();tab('sources');$('#sources').scrollIntoView({behavior:'smooth'});});
 function field(root,title,text,cls){if(!text)return;const box=el('div',undefined,cls);box.append(el('span',title,'field-title'),el('p',text));root.append(box);}
-function card(c){const n=el('article',undefined,'card');n.id='case-'+c.id;n.tabIndex=-1;const meta=el('div',undefined,'card-meta');meta.append(el('span',c.category,'tag'),el('span',c.historical?'ИСТОРИЧЕСКИЙ ПРИМЕР':date(c.published),c.historical?'historical':''));n.append(meta,el('h3',c.title),el('div',c.venue+' · '+c.country,'venue'),el('p',c.facts));field(n,'Механика кейса',c.mechanics,'mechanics');const details=el('div',undefined,'details');details.id='details-'+c.id;details.hidden=true;field(details,'Аудитория и задача',c.audience+' · '+c.goal);field(details,'Идея применения · гипотеза',c.idea,'idea');field(details,'Как проверить',c.metrics);n.append(details);const toggle=el('button','Идея применения и проверка ↗','details-toggle');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',details.id);toggle.addEventListener('click',()=>{details.hidden=!details.hidden;toggle.setAttribute('aria-expanded',String(!details.hidden));toggle.textContent=details.hidden?'Идея применения и проверка ↗':'Свернуть ↑';});n.append(toggle);n.append(el('p','Публикация: '+date(c.published)+(c.event_date?' · Событие: '+c.event_date:''),'date-note'));const links=el('div',undefined,'sources');(c.sources||[]).forEach(s=>{const href=safeLink(s.url);if(!href)return;const a=el('a',s.label||'Оригинал ↗');a.href=href;a.target='_blank';a.rel='noopener noreferrer';links.append(a);});n.append(links);return n;}
+function card(c){const n=el('article',undefined,'card');n.id='case-'+c.id;n.tabIndex=-1;const meta=el('div',undefined,'card-meta');meta.append(el('span',c.category,'tag'),el('span',c.historical?'ИСТОРИЧЕСКИЙ ПРИМЕР':date(c.published),c.historical?'historical':''));n.append(meta,el('h3',c.title),el('div',c.venue+' · '+c.country,'venue'));if(c.product_context)n.append(el('p',c.product_context,'product-context'));n.append(el('p',c.facts));field(n,'Механика кейса',c.mechanics,'mechanics');const details=el('div',undefined,'details');details.id='details-'+c.id;details.hidden=true;field(details,'Аудитория и задача',c.audience+' · '+c.goal);field(details,'Идея применения · гипотеза',c.idea,'idea');field(details,'Как проверить',c.metrics);n.append(details);const toggle=el('button','Идея применения и проверка ↗','details-toggle');toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls',details.id);toggle.addEventListener('click',()=>{details.hidden=!details.hidden;toggle.setAttribute('aria-expanded',String(!details.hidden));toggle.textContent=details.hidden?'Идея применения и проверка ↗':'Свернуть ↑';});n.append(toggle);n.append(el('p','Публикация: '+date(c.published)+(c.event_date?' · Событие: '+c.event_date:''),'date-note'));const links=el('div',undefined,'sources');(c.sources||[]).forEach(s=>{const href=safeLink(s.url);if(!href)return;const a=el('a',s.label||'Оригинал ↗');a.href=href;a.target='_blank';a.rel='noopener noreferrer';links.append(a);});n.append(links);return n;}
 function render(){const q=$('#search').value.trim().toLocaleLowerCase('ru');const category=$('#category').value,region=$('#region').value,days=Number($('#period').value);const threshold=Date.now()-days*86400000;const list=data.cards.filter(c=>(!q||[c.title,c.venue,c.facts,c.mechanics,c.audience,c.goal].join(' ').toLocaleLowerCase('ru').includes(q))&&(!category||c.category===category)&&(!region||(region==='ru'?c.country==='Россия':c.country!=='Россия'))&&(!days||(c.published&&new Date(c.published)>=threshold))).sort((a,b)=>(b.published||'').localeCompare(a.published||''));$('#cards').replaceChildren(...list.map(card));$('#count').textContent=list.length;$('#empty').hidden=list.length>0;}
 ['search','category','region','period'].forEach(id=>$('#'+id).addEventListener(id==='search'?'input':'change',()=>data&&render()));$('#reset').addEventListener('click',()=>{['search','category','region','period'].forEach(id=>$('#'+id).value='');if(data)render();});
 function issueCases(c) {
@@ -43,7 +43,7 @@ function digestSections(c) {
 }
 function issueText(c) {
   const parts=[c.title,c.period];
-  digestSections(c).forEach(s=>{parts.push(s.title);s.entries.forEach(x=>parts.push((x.digest_title||x.title)+' · '+x.venue+'\n'+digestCopy(x,s.short)+'\n'+caseSource(x)));});
+  digestSections(c).forEach(s=>{parts.push(s.title);s.entries.forEach(x=>parts.push((x.digest_title||x.title)+' · '+x.venue+'\n'+(x.product_context?x.product_context+'\n':'')+digestCopy(x,s.short)+'\n'+caseSource(x)));});
   if(!digestSections(c).length)parts.push('Новых внешних кейсов для сводки нет.');
   return parts.join('\n\n');
 }
@@ -51,7 +51,7 @@ function issueHTML(c) {
   let html='<p><b>'+escapeHTML(c.title)+'</b><br>'+escapeHTML(c.period)+'</p>';
   digestSections(c).forEach(s=>{
     html+='<p><b>'+escapeHTML(s.title)+'</b></p>';
-    s.entries.forEach(x=>{html+='<p><b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.digest_title||x.title)+'</a></b> · '+escapeHTML(x.venue)+(s.short?' — ':'<br>')+escapeHTML(digestCopy(x,s.short))+'</p>';});
+    s.entries.forEach(x=>{html+='<p><b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.digest_title||x.title)+'</a></b> · '+escapeHTML(x.venue)+(s.short?' — ':'<br>')+(x.product_context?escapeHTML(x.product_context)+'<br>':'')+escapeHTML(digestCopy(x,s.short))+'</p>';});
   });
   if(!digestSections(c).length)html+='<p>Новых внешних кейсов для сводки нет.</p>';
   return html;
@@ -142,6 +142,7 @@ async function visualCanvas(issue,page,index,total){
     paintText(ctx,x.image?'Фото публикации · '+x.image.credit:'Изображение недоступно · ссылка в тексте сводки',54,668,960,'20px system-ui',26,1,'#637976');
     let y=paintText(ctx,x.digest_title||x.title,54,735,960,'bold 51px system-ui',60,3);
     y=paintText(ctx,x.venue,54,y+15,960,'26px system-ui',33,2,'#146956');
+    if(x.product_context)y=paintText(ctx,x.product_context,54,y+18,960,'26px system-ui',36,3,'#637976');
     paintText(ctx,digestCopy(x),54,y+28,960,'32px system-ui',44,Math.max(1,Math.floor((1220-y-28)/44)));
   }else{
     const rowHeight=Math.floor(1010/page.entries.length);
@@ -149,6 +150,7 @@ async function visualCanvas(issue,page,index,total){
       const x=page.entries[i],y=215+i*rowHeight;
       let ty=paintText(ctx,x.digest_title||x.title,54,y+32,972,'bold 36px system-ui',44,2);
       ty=paintText(ctx,x.venue,54,ty+8,972,'24px system-ui',31,1,'#146956');
+      if(x.product_context)ty=paintText(ctx,x.product_context,54,ty+8,972,'26px system-ui',34,3,'#637976');
       paintText(ctx,digestCopy(x),54,ty+18,972,'30px system-ui',40,Math.max(1,Math.floor((rowHeight-(ty-y)-40)/40)));
       ctx.strokeStyle='#dce3da';ctx.beginPath();ctx.moveTo(54,y+rowHeight-18);ctx.lineTo(1026,y+rowHeight-18);ctx.stroke();
     }
@@ -193,7 +195,7 @@ function captionHTML(c) {
   return '<p><b>'+escapeHTML(p.title)+'</b></p>'+
     '<p>В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.</p>'+
     (p.main.length?'<p>'+ (p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:')+'</p>':'')+
-    p.main.map(x=>'<p>• <b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.venue+' — '+(x.digest_title||x.title))+'</a></b>: '+escapeHTML(digestCopy(x))+'</p>').join('')+
+    p.main.map(x=>'<p>• <b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.venue+' — '+(x.digest_title||x.title))+'</a></b>: '+(x.product_context?escapeHTML(x.product_context)+'<br>':'')+escapeHTML(digestCopy(x))+'</p>').join('')+
     '<p>Остальные кейсы — коротко в карточках. <a href="'+escapeHTML(home.href)+'">Все описания и источники — в радаре</a>.</p>'+
     '<p><i>В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.</i></p>';
 }
@@ -201,7 +203,7 @@ function captionText(c) {
   const p=captionParts(c),home=new URL(location.href);home.hash='';
   return [p.title,'В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.',
     p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:',
-    ...p.main.map(x=>'• '+x.venue+' — '+(x.digest_title||x.title)+': '+digestCopy(x)+'\n'+caseSource(x)),
+    ...p.main.map(x=>'• '+x.venue+' — '+(x.digest_title||x.title)+': '+(x.product_context?x.product_context+'\n':'')+digestCopy(x)+'\n'+caseSource(x)),
     'Остальные кейсы — коротко в карточках. Все описания и источники — в радаре: '+home.href,
     'В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.'].join('\n\n');
 }

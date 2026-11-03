@@ -33,7 +33,8 @@
         "source_url": "https://detroitzoo.org/events/wild-lights",
         "original_url": "https://detroitzoo.org/wp-content/uploads/2025/10/wlHero-1200x627.png",
         "kind": "source-publication"
-      }
+      },
+      "product_context": "Wild Lights — вечерний световой фестиваль на территории Detroit Zoo."
     },
     {
       "id": "d1258ab58c0d968e4353",
@@ -232,7 +233,8 @@
       ],
       "digest_priority": 5,
       "digest_title": "Zoo Lights: отдельные вечера 21+",
-      "digest_text": "Внутри зимнего светового фестиваля выделены отдельные вечерние события 21+ для взрослой аудитории."
+      "digest_text": "Внутри зимнего светового фестиваля выделены отдельные вечерние события 21+ для взрослой аудитории.",
+      "product_context": "Zoo Lights — зимний световой фестиваль на территории Denver Zoo."
     },
     {
       "id": "cd68c98cda6bf76242a3",
@@ -414,7 +416,8 @@
       ],
       "digest_priority": 3,
       "digest_title": "Допуслуги по предварительной записи",
-      "digest_text": "Гости заранее бронируют погружения и персональные поздравления через YClients, отдельно от основного входного билета."
+      "digest_text": "Гости заранее бронируют погружения и персональные поздравления через YClients, отдельно от основного входного билета.",
+      "product_context": "YClients — сервис онлайн-записи на услуги."
     },
     {
       "id": "7df8cfe688c41b1456f0",
@@ -634,7 +637,8 @@
         "source_url": "https://visitphilly.com/things-to-do/events/luminature-philadelphia-zoo",
         "original_url": "https://visitphilly.com/wp-content/uploads/2025/11/Luminature-couple-photo-by-DKnoll-for-vp-2200x1237px.jpg",
         "kind": "source-publication"
-      }
+      },
+      "product_context": "LumiNature — зимний ночной маршрут со световыми инсталляциями в Philadelphia Zoo."
     },
     {
       "id": "cc69b13b833b4c15cb7d",
