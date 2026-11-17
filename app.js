@@ -19,8 +19,12 @@ function caseURL(c) {
 }
 function caseSource(c) { return (c.sources||[]).map(s=>safeLink(s.url)).find(Boolean)||caseURL(c); }
 function escapeHTML(v) { return String(v||'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+function isHouseBrand(card) {
+  const identity = [card.venue, card.title, card.digest_title, ...(card.sources || []).map(source => source.label)].join(' ');
+  return /(?:\bwine[\s_-]*folly\b|море[\s_-]+музыки)/iu.test(identity);
+}
 function digestPlan(c) {
-  const cards=issueCases(c).filter(x=>!x.exclude_from_digest&&!/москвариум/i.test(x.venue)&&x.digest_scope!=='adjacent');
+  const cards=issueCases(c).filter(x=>!x.exclude_from_digest&&!isHouseBrand(x)&&!/москвариум/i.test(x.venue)&&x.digest_scope!=='adjacent');
   const priority=x=>x.digest_priority??({'Маркетинг':6,'Дополнительные услуги':5,'Опыт посещения':3}[x.category]||1);
   cards.sort((a,b)=>priority(b)-priority(a)||a.id.localeCompare(b.id));
   const main=cards.filter(x=>priority(x)>=5).slice(0,3);
@@ -35,7 +39,7 @@ function digestCopy(x) {
 }
 function digestSections(c) {
   // Trend observations retain all operators, including Moskvarium.
-  if((data.directions||[]).some(x=>x.id===c.id))return [{title:c.summary,entries:issueCases(c),short:true}];
+  if((data.directions||[]).some(x=>x.id===c.id))return [{title:c.summary,entries:issueCases(c).filter(x=>!isHouseBrand(x)),short:true}];
   const p=digestPlan(c),sections=[];
   if(p.main.length)sections.push({title:'Главное · механики',entries:p.main,short:false});
   p.groups.forEach((entries,title)=>sections.push({title,entries,short:true}));
