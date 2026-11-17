@@ -33,7 +33,8 @@ function digestPlan(c) {
   return {main,groups};
 }
 function digestCopy(x) {
-  const text=(x.digest_text||x.mechanics||x.facts||'').trim();
+  if(x.digest_text?.trim())return x.digest_text.trim();
+  const text=(x.mechanics||x.facts||'').trim();
   const segmenter=new Intl.Segmenter('ru',{granularity:'sentence'});
   return [...segmenter.segment(text)][0]?.segment.trim()||'';
 }
@@ -108,15 +109,21 @@ function visualPages(issue) {
   }
   return pages;
 }
-function paintText(ctx,text,x,y,width,font,lineHeight,maxLines,color='#123e40'){
-  ctx.font=font;ctx.fillStyle=color;
-  const words=String(text||'').split(/\s+/),lines=[];let line='';
-  for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>width&&line){lines.push(line);line=word;}else line=next;}
+function wrapCardText(ctx,text,width,font){
+  ctx.font=font;
+  const lines=[];
+  let line='';
+  for(const word of String(text||'').trim().split(/\s+/u)){
+    const next=line?line+' '+word:word;
+    if(line&&ctx.measureText(next).width>width){lines.push(line);line='';}
+    if(line){line=next;continue;}
+    for(const char of word){
+      if(line&&ctx.measureText(line+char).width>width){lines.push(line);line='';}
+      line+=char;
+    }
+  }
   if(line)lines.push(line);
-  const visible=lines.slice(0,maxLines);
-  if(lines.length>maxLines){let last=visible.at(-1);while(ctx.measureText(last+'…').width>width)last=last.slice(0,-1);visible[visible.length-1]=last+'…';}
-  visible.forEach((s,i)=>ctx.fillText(s,x,y+i*lineHeight));
-  return y+visible.length*lineHeight;
+  return lines;
 }
 async function drawCasePhoto(ctx,item,x,y,w,h){
   ctx.fillStyle='#dce8dd';ctx.fillRect(x,y,w,h);
@@ -131,37 +138,52 @@ async function drawCasePhoto(ctx,item,x,y,w,h){
       return true;
     }catch{}
   }
-  paintText(ctx,'Фото не получено',x+25,y+h/2,w-50,'26px system-ui',32,2,'#637976');
+  ctx.font='26px system-ui';ctx.fillStyle='#637976';
+  ctx.fillText('Фото не получено',x+25,y+h/2);
   return false;
 }
 async function visualCanvas(issue,page,index,total){
-  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;
-  const ctx=canvas.getContext('2d');ctx.fillStyle='#f7f8f3';ctx.fillRect(0,0,1080,1350);
-  ctx.fillStyle='#123e40';ctx.fillRect(0,0,1080,130);
-  paintText(ctx,'ЖИВОЙ РАДАР',54,57,720,'bold 30px system-ui',36,1,'#d8eea0');
-  paintText(ctx,issue.period,54,98,900,'24px system-ui',30,1,'#ffffff');
-  paintText(ctx,page.title.toUpperCase(),54,174,960,'bold 24px system-ui',30,1);
-  if(!page.short){
-    const x=page.entries[0];await drawCasePhoto(ctx,x,54,205,972,435);
-    paintText(ctx,x.image?'Фото публикации · '+x.image.credit:'Изображение недоступно · ссылка в тексте сводки',54,668,960,'20px system-ui',26,1,'#637976');
-    let y=paintText(ctx,x.digest_title||x.title,54,735,960,'bold 51px system-ui',60,3);
-    y=paintText(ctx,x.venue,54,y+15,960,'26px system-ui',33,2,'#146956');
-    if(x.product_context)y=paintText(ctx,x.product_context,54,y+18,960,'26px system-ui',36,3,'#637976');
-    paintText(ctx,digestCopy(x),54,y+28,960,'32px system-ui',44,Math.max(1,Math.floor((1220-y-28)/44)));
-  }else{
-    const rowHeight=Math.floor(1010/page.entries.length);
-    for(let i=0;i<page.entries.length;i++){
-      const x=page.entries[i],y=215+i*rowHeight;
-      let ty=paintText(ctx,x.digest_title||x.title,54,y+32,972,'bold 36px system-ui',44,2);
-      ty=paintText(ctx,x.venue,54,ty+8,972,'24px system-ui',31,1,'#146956');
-      if(x.product_context)ty=paintText(ctx,x.product_context,54,ty+8,972,'26px system-ui',34,3,'#637976');
-      paintText(ctx,digestCopy(x),54,ty+18,972,'30px system-ui',40,Math.max(1,Math.floor((rowHeight-(ty-y)-40)/40)));
-      ctx.strokeStyle='#dce3da';ctx.beginPath();ctx.moveTo(54,y+rowHeight-18);ctx.lineTo(1026,y+rowHeight-18);ctx.stroke();
-    }
+  const canvas=document.createElement('canvas');
+  canvas.width=1080;
+  const ctx=canvas.getContext('2d');
+  const textBlocks=[], separators=[];
+  function addText(text,y,font,spacing,color='#123e40',x=54,width=972){
+    const lines=wrapCardText(ctx,text,width,font);
+    textBlocks.push({lines,y,font,spacing,color,x});
+    return y+lines.length*spacing;
   }
-  ctx.fillStyle='#123e40';ctx.fillRect(0,1260,1080,90);
-  paintText(ctx,'Источники и ссылки — в тексте сводки',54,1314,870,'23px system-ui',30,1,'#ffffff');
-  paintText(ctx,(index+1)+' / '+total,940,1314,100,'23px system-ui',30,1,'#d8eea0');
+
+  addText('ЖИВОЙ РАДАР',57,'bold 30px system-ui',36,'#d8eea0');
+  const header=Math.max(130,addText(issue.period,98,'24px system-ui',30,'#ffffff'));
+  let y=addText(page.title.toUpperCase(),header+44,'bold 24px system-ui',30)+22;
+  const lead=page.short?null:page.entries[0];
+  const photoY=y;
+  if(lead){
+    y=addText(lead.image?'Фото публикации · '+lead.image.credit:'Изображение недоступно · ссылка в тексте сводки',photoY+463,'20px system-ui',26,'#637976')+40;
+  }
+  for(const card of page.entries){
+    y=addText(card.digest_title||card.title,y,lead?'bold 51px system-ui':'bold 36px system-ui',lead?60:44);
+    y=addText(card.venue,y+8,'26px system-ui',33,'#146956');
+    if(card.product_context)y=addText(card.product_context,y+8,'26px system-ui',34,'#637976');
+    y=addText(digestCopy(card),y+18,'32px system-ui',44);
+    if(page.short){separators.push(y+12);y+=76;}
+  }
+
+  const footer=Math.max(1260,y+24);
+  canvas.height=footer+90;
+  ctx.fillStyle='#f7f8f3';ctx.fillRect(0,0,1080,canvas.height);
+  ctx.fillStyle='#123e40';ctx.fillRect(0,0,1080,header);ctx.fillRect(0,footer,1080,90);
+  if(lead)await drawCasePhoto(ctx,lead,54,photoY,972,435);
+  addText('Источники и ссылки — в тексте сводки',footer+54,'23px system-ui',30,'#ffffff');
+  addText((index+1)+' / '+total,footer+54,'23px system-ui',30,'#d8eea0',940,100);
+  for(const block of textBlocks){
+    ctx.font=block.font;ctx.fillStyle=block.color;
+    block.lines.forEach((line,i)=>ctx.fillText(line,block.x,block.y+i*block.spacing));
+  }
+  ctx.strokeStyle='#dce3da';
+  for(const lineY of separators){
+    ctx.beginPath();ctx.moveTo(54,lineY);ctx.lineTo(1026,lineY);ctx.stroke();
+  }
   return canvas;
 }
 function visualGallery(issue){
@@ -179,7 +201,7 @@ function visualGallery(issue){
         save.addEventListener('click',()=>canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download=issue.id+'-'+(i+1)+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png'));
         item.append(canvas,save);grid.append(item);
       }
-      message.textContent=pages.length+' карточек · 1080 × 1350 · ссылки — в тексте поста';button.hidden=true;
+      message.textContent=pages.length+' карточек · ссылки — в тексте поста';button.hidden=true;
     }catch{message.textContent='Не удалось подготовить карточки. Попробуйте ещё раз.';button.disabled=false;}
   });
   return box;
