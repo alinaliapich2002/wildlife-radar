@@ -214,7 +214,12 @@ function captionParts(c) {
     const format=new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long',timeZone:'UTC'});
     period=format.format(new Date(matches[0]+'T12:00:00Z'))+' — '+format.format(new Date(matches[1]+'T12:00:00Z'));
   }
-  return {title:'Живой радар · '+period,main:digestPlan(c).main};
+  const main=digestPlan(c).main;
+  (c.caption_case_ids||[]).forEach(id=>{
+    const item=data.cards.find(x=>x.id===id);
+    if(item&&!main.some(x=>x.id===item.id))main.push(item);
+  });
+  return {title:'Живой радар · '+period,main};
 }
 function captionHTML(c) {
   const p=captionParts(c),home=new URL(location.href);home.hash='';
