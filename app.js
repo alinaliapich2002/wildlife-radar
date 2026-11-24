@@ -220,21 +220,18 @@ function captionParts(c) {
     const item=data.cards.find(x=>x.id===id);
     if(item&&!main.some(x=>x.id===item.id))main.push(item);
   });
-  return {title:'Живой радар · '+period,main};
+  return {title:period,main};
 }
 function captionHTML(c) {
   const p=captionParts(c),home=new URL(location.href);home.hash='';
   return '<p><b>'+escapeHTML(p.title)+'</b></p>'+
-    '<p>В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.</p>'+
-    (p.main.length?'<p>'+ (p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:')+'</p>':'')+
     p.main.map(x=>'<p>• <b><a href="'+escapeHTML(caseSource(x))+'">'+escapeHTML(x.venue+' — '+(x.digest_title||x.title))+'</a></b>: '+(x.product_context?escapeHTML(x.product_context)+'<br>':'')+escapeHTML(digestCopy(x))+'</p>').join('')+
     '<p>Остальные кейсы — коротко в карточках. <a href="'+escapeHTML(home.href)+'">Все описания и источники — в радаре</a>.</p>'+
     '<p><i>В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.</i></p>';
 }
 function captionText(c) {
   const p=captionParts(c),home=new URL(location.href);home.hash='';
-  return [p.title,'В карточках — новые поводы прийти, дополнительные услуги и механики продвижения океанариумов и зоопарков.',
-    p.main.length===3?'Три кейса, на которые стоит обратить внимание:':'Кейсы, на которые стоит обратить внимание:',
+  return [p.title,
     ...p.main.map(x=>'• '+x.venue+' — '+(x.digest_title||x.title)+': '+(x.product_context?x.product_context+'\n':'')+digestCopy(x)+'\n'+caseSource(x)),
     'Остальные кейсы — коротко в карточках. Все описания и источники — в радаре: '+home.href,
     'В подборке есть анонсы. Коммерческий эффект описанных решений пока не подтверждён.'].join('\n\n');
