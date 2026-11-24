@@ -158,8 +158,9 @@ async function visualCanvas(issue,page,index,total){
   let y=addText(page.title.toUpperCase(),header+44,'bold 24px system-ui',30)+22;
   const lead=page.short?null:page.entries[0];
   const photoY=y;
-  if(lead){
-    y=addText(lead.image?'Фото публикации · '+lead.image.credit:'Изображение недоступно · ссылка в тексте сводки',photoY+463,'20px system-ui',26,'#637976')+40;
+  const showPhoto=Boolean(lead?.image?.url);
+  if(showPhoto){
+    y=addText('Фото публикации · '+(lead.image.credit||''),photoY+463,'20px system-ui',26,'#637976')+40;
   }
   for(const card of page.entries){
     y=addText(card.digest_title||card.title,y,lead?'bold 51px system-ui':'bold 36px system-ui',lead?60:44);
@@ -173,7 +174,7 @@ async function visualCanvas(issue,page,index,total){
   canvas.height=footer+90;
   ctx.fillStyle='#f7f8f3';ctx.fillRect(0,0,1080,canvas.height);
   ctx.fillStyle='#123e40';ctx.fillRect(0,0,1080,header);ctx.fillRect(0,footer,1080,90);
-  if(lead)await drawCasePhoto(ctx,lead,54,photoY,972,435);
+  if(showPhoto)await drawCasePhoto(ctx,lead,54,photoY,972,435);
   addText('Источники и ссылки — в тексте сводки',footer+54,'23px system-ui',30,'#ffffff');
   addText((index+1)+' / '+total,footer+54,'23px system-ui',30,'#d8eea0',940,100);
   for(const block of textBlocks){
